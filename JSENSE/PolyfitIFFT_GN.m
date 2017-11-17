@@ -3,6 +3,9 @@ function  Fc=PolyfitIFFT_GN(xx, yy, dk1, dk2, R, ACSL, DL, DH, DM, mask, ...
 
 % ************************************************************
 %  Matrix
+%  这里实际上是对每个线圈获取到的图像进行多项式拟合，并不是敏感度函数
+%  因此，当调用estimate_sensitivity_poly_CoilNum函数产生相应WeightingFunctions
+%  后，依旧需要计算sum of square
 % ************************************************************
 [tukey_window,tukey_window_red] = filter_2D(dk2,dk2,R);
 [tukey_window2,tukey_window_red2] = filter_img_2D(dk2,dk2,R);

@@ -44,7 +44,10 @@ while (count < inter_num && delta > RequiredAcc)
     
     count = count + 1;
         q = SMatrixAfunction3_GN(p, sen_map, trajectory, I, Density); 
-        Lq = Ls * reshape(p, D1 * D2, 1);
+        if afa ~= 0
+             Lq = Ls * reshape(p, D1 * D2, 1);
+             q = q + afa * reshape(Lq, D1, D2);
+        end
       %  Lq=Ls*reshape(q,n1*n2,1);
 %         bs = sum(sum(abs(b)));
 %         if bs ~= 0
@@ -54,7 +57,7 @@ while (count < inter_num && delta > RequiredAcc)
 %            bs = 1;
 %         end
         %q=q+afa*reshape(Lq,n1,n2)/bs;
-        q = q + afa * reshape(Lq, D1, D2);
+        
         %call function MatrixAfunction to calculate  I*E(H)*D*E*I
         b = b + (r(:)' * r(:)) / (p(:)' * q(:)) * p;
         

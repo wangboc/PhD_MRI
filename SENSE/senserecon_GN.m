@@ -20,8 +20,8 @@ for s = 1 : coiln
     coilimagealias(:,:,s) = ifft2(fftshift(KspaceDataWeighted(:, :, s)));
 %     观察欠采样后的重叠图像
 %     figure; 
-%     imshow((abs(coilimagealias(:, :, s))), []);
-%     观察线圈敏感图像
+%     imshow(rot90(abs(coilimagealias(:, :, s)), -1), []);
+% %     观察线圈敏感图像
 %     figure; 
 %     imshow(rot90(abs(coilprofile(:, :, s)), -1), []);
 end
@@ -44,6 +44,7 @@ for y = 1 : FOV / reduc
                 encode(m, n) = coilprofile(phase, x, m);
             end
         end
+
         b = pinv(encode) * a;
         for n = 1 : reduc
             phase = mod((FOV / 2 - FOV / reduc / 2) + y + (n - 1) * (FOV / reduc), FOV);

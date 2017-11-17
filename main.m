@@ -126,20 +126,23 @@ SY_CG0 = ReducedSample(kspace_full, ReduceFactor, D2, ACSL, DL, DH, DM);
 SY = ReducedSample(kspace_full_GN, ReduceFactor, D2, ACSL, DL, DH, DM);
 %SY_2D = ReducedSample_2D(kspace_full, ReduceFactor, D2, ACSL, DL, DH, DM);
 %% SENSE
-InitImg = zeros(D2, D2);
+InitImg = zeros(D2, D2); 
 ImgRecon_SNESE = senserecon_GN(KspaceDataWeighted, WeightingFunctions, R);
 figure,
 imshow(abs(rot90(ImgRecon_SNESE, -1)), [0 , 0.7 * max(max(abs(ImgRecon_SNESE)))]);
 title('SENSE');
 figure;
 imshow(rot90(mask, -1), []);
-Ls = regularization(D2);
+Ls = zeros(0);
+if afa ~= 0
+    Ls = regularization(D2);
+end
 figure;
-imshow(abs(rot90(WeightingFunctions_standard(:, :, 1) .* mask, -1)), []);
-title('Standard WeightingFunctions for Channel 1 with Mask');
+imshow(abs(rot90(WeightingFunctions_standard(:, :, 1) .* mask , -1)), []);
+title('SoS重建的标准 WeightingFunctions for Channel 1 with Mask');
 figure;
-imshow(abs(rot90(WeightingFunctions(:, :, 1) .* mask, -1)), []);
-title('Original WeightingFunctions for Channel 1 with Mask');
+imshow(abs(rot90(WeightingFunctions(:, :, 1) .* mask , -1) ), []);
+title('通过中心全采样区域生成的 WeightingFunctions for Channel 1 with Mask');
 %% Conjugate Gradient
 KspaceDataWeighted(acs_line_location, :, :) = KspaceDataWeighted_full(acs_line_location, :, :);
 ImgRecon_CG = SENSEArbitrary_regul_GN(KspaceDataWeighted, WeightingFunctions, InitImg, ...
@@ -164,7 +167,9 @@ title('CG');
 k_space_red = zeros(floor(D2 / ReduceFactor), D2, CoilNum);
 k_space_red(:, :, :) = kspace_full(1 : ReduceFactor : D2, :, :);
 %% WeightingFunctions based on the coefficients of a polynomial
-xx = sum(1 : D2) / D2 ^2;
+% here xx is the averaged value of x, while it is calculated by
+% average(x)/max(x), so does yy.
+xx = sum(1 : D2) / D2 ^2; 
 yy = sum(1 : D2) /D2 ^2;
 D1 = D2 / R;
 for s = 1 : CoilNum
