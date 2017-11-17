@@ -1,4 +1,4 @@
-%% timer on
+%% timer on ³ÌÐò¿ªÊ¼
 tic;
 %% Initialize parameters and load recon_images
 clear all; close all; fclose('all');
