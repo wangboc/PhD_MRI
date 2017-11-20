@@ -39,6 +39,7 @@ clear recon_images kspace_data
 %% 重建SoS图像和其对应的线圈敏感函数
 s_poly = zeros(order + 1, order + 1, CoilNum);
 Img_SoS = sqrt(sum(abs(Img) .^ 2, 3));
+
 [mask] = get_mask(Img_SoS);
 Img_NMSE = Img_SoS / mean(mean(abs(Img_SoS)));
 
@@ -99,7 +100,7 @@ title(['VD Aquisition with ACSL = ', num2str(ACSL), ' and R = ', num2str(R)]);
 % (暂未使用) JSENSE_tukey_window
 %JSENSE_tukey_window = cosine_taper_window(128, 77, 40, 2, 20, 2);
 %% estimate maps 通过中心全采样的Kspace数据，estimate线圈敏感函数。
-center_data(1 : DH-DL + 1, :, :) = kspace_data(DL : DH, :, :);
+center_data = kspace_data(DL : DH, :, :);
 [rough_map, regularization_image] = estimate_maps(zeros(D2, D2, CoilNum), ACSL,DL:DH, 0, ...
     permute(center_data, [2 1 3]), 0, D2, D2);
 WeightingFunctions = zeros(D2, D2, CoilNum);

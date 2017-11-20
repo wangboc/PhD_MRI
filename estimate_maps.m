@@ -70,7 +70,7 @@ ww1 = tukey_window(k : 256, k);
     %   dd
      %  coil_full(:,:,i)=ifftshift(ifft2(ifftshift(k_coil_full(:,:,i))));
        coil_full(:, :, i) = ifft2(ifftshift(k_coil_full(:, :, i)));
-       %figure, imagesc(abs(coil_full(:,:,i)));
+    
        %Receiver.sos_data(:,:,i)=center_data(:,:,i);
      end      
 %  else
@@ -89,13 +89,13 @@ ww1 = tukey_window(k : 256, k);
 %--------sum of squares image--------------------   
 %sum_of_squares=sqrt(sum([abs(coil_full)].^2,3)/3);
 sum_of_squares = sqrt(sum([abs(coil_full)] .^ 2, 3));
-
 regularization_image = sum_of_squares;
 %warning off MATLAB:divideByZero;
 
 for i = 1 : num_coils
     temp = coil_full(:, :, i);
     rough_map(:, :, i) = temp ./ sum_of_squares;
+%     figure, imagesc(abs(rough_map(:, :, i))); title('sensitivity estimation with center ACSL')
 end
 
 %----------polynomial filtering-------------
