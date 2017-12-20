@@ -94,6 +94,8 @@ regularization_image = sum_of_squares;
 
 for i = 1 : num_coils
     temp = coil_full(:, :, i);
+    
+    
     rough_map(:, :, i) = temp ./ sum_of_squares;
 %     figure, imagesc(abs(rough_map(:, :, i))); title('sensitivity estimation with center ACSL')
 end

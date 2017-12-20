@@ -153,16 +153,33 @@ ImgRecon_CG_NMSE = ImgRecon_CG / mean(mean(abs(ImgRecon_CG)));
 
 for s = 1 : CoilNum
     Img_WF(:, :, s) = ImgRecon_CG(:, :) .* WeightingFunctions(:, :, s);
-    k_space_full_CG(:, :, s) = fftshift(fft2(Img_WF(:, :, s)));
+    k_space_full_CG_EncodingMatrix(:, :, s) = fftshift(fft2(Img_WF(:, :, s)));
 end
-SY_CG = ReducedSample(k_space_full_CG, ReduceFactor, D2, ACSL, DL, DH, DM);
-error_CG = sum(abs(abs(SY_CG0) - abs(SY_CG)) .^2) / sum(abs(SY_CG0) .^2) * 100
+SY_CG_EncodingMatrix = ReducedSample(k_space_full_CG_EncodingMatrix, ReduceFactor, D2, ACSL, DL, DH, DM);
+error_CG = sum(abs(abs(SY_CG0) - abs(SY_CG_EncodingMatrix)) .^2) / sum(abs(SY_CG0) .^2) * 100
 CG_NMSE = sum(sum(abs(abs(ImgRecon_CG_NMSE) - abs(Img_NMSE)) .^2)) / sum(sum(abs(Img_NMSE) .^ 2)) * 100
 
 figure,
 imshow(abs(rot90(ImgRecon_CG, -1)), [0, 0.7 * max(max(abs(ImgRecon_CG)))]);
 title('CG');
+%% Conjugate Gradient for Encoding Matrix
+weightingFunctions = CGforEncodingMatrix(KspaceDataWeighted, ImgRecon_CG, WeightingFunctions, InitImg, ...
+    trajectory, Density, Ls, afa, inter_num);
+ImgRecon_CG = SENSEArbitrary_regul_GN(KspaceDataWeighted, weightingFunctions, InitImg, ...
+    trajectory, Density, Ls, afa, inter_num);
+figure,
+imshow(abs(rot90(ImgRecon_CG, -1)), [0, 0.7 * max(max(abs(ImgRecon_CG)))]);
+title('Reconstruction under CG algorithm for solving encoding matrix');
 
+ImgRecon_CG_Encoding_NMSE = ImgRecon_CG / mean(mean(abs(ImgRecon_CG)));
+
+for s = 1 : CoilNum
+    Img_WF(:, :, s) = ImgRecon_CG(:, :) .* weightingFunctions(:, :, s);
+    k_space_full_CG_EncodingMatrix(:, :, s) = fftshift(fft2(Img_WF(:, :, s)));
+end
+SY_CG_EncodingMatrix = ReducedSample(k_space_full_CG_EncodingMatrix, ReduceFactor, D2, ACSL, DL, DH, DM);
+error_CG_EncodingMatrix = sum(abs(abs(SY_CG0) - abs(SY_CG_EncodingMatrix)) .^2) / sum(abs(SY_CG0) .^2) * 100
+CG_NMSE_EncodingMatrix = sum(sum(abs(abs(ImgRecon_CG_Encoding_NMSE) - abs(Img_NMSE)) .^2)) / sum(sum(abs(Img_NMSE) .^ 2)) * 100
 %% Generate weighting functions and the weighted images. Downsampling by a factor ReduceFactor
 % 
 k_space_red = zeros(floor(D2 / ReduceFactor), D2, CoilNum);
