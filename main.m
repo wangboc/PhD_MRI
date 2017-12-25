@@ -170,11 +170,11 @@ figure,
 imshow(abs(rot90(ImgRecon_CG_low_Resolution, -1)), [0, 0.7 * max(max(abs(ImgRecon_CG_low_Resolution)))]);
 title('CG (low_resolution)');
 %% Conjugate Gradient for Encoding Matrix
-Q = 0.0001;
+Q = 0.001;
 while(Q < 100)
     Q = Q * 10;
-    sensitivity_underCG = CGforEncodingMatrix(kspace_temp, ImgRecon_CG_low_Resolution, WeightingFunctions, InitImg, ...
-        trajectory, Density, Ls, afa, inter_num, mask, Q);
+    sensitivity_underCG = CGforEncodingMatrix(kspace_temp, ImgRecon_CG_low_Resolution, WeightingFunctions, ...
+        Density, inter_num, mask ,Q);
 
     figure,
     subplot(2,2,4);
@@ -187,7 +187,7 @@ while(Q < 100)
     KspaceDataWeighted(acs_line_location, :, :) = KspaceDataWeighted_full(acs_line_location, :, :);
     ImgRecon_CG = SENSEArbitrary_regul_GN(KspaceDataWeighted, sensitivity_underCG, InitImg, ...
         trajectory, Density, Ls, afa, inter_num);
-
+%     ImgRecon_CG = ImgRecon_CG .* mask;
     subplot(2,2,3);
     imshow(abs(rot90(WeightingFunctions(:, :, 1), -1)), []);
     title('µü´úÇ° Sensitivity');

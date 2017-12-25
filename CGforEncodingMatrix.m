@@ -1,5 +1,5 @@
-function [ WeightingFunctions ] = CGforEncodingMatrix(kspace_data, Image, sen_map, InitImg, trajectory,...
-                                        Density, Ls, afa, inter_num, mask, Q)
+function [ WeightingFunctions ] = CGforEncodingMatrix(kspace_data, Image, sen_map,Density, ...
+                                         inter_num, mask, Q)
 %CGFORENCODINGMATRIX 此处显示有关此函数的摘要
 %   此处显示详细说明
 
@@ -8,7 +8,9 @@ for i = 1 : length(mask(:))
         mask(i) =  -1;
     end
 end
-[D1, D2, Coilnum] = size(sen_map);
+% mask = -mask;
+
+[~, ~, Coilnum] = size(sen_map);
 for s = 1 : Coilnum
     xspaceimage(:, :, s) = ifft2(fftshift(kspace_data(:, :, s)));
     xspaceimageWeighted(:, :, s) =  conj(Image) .* (xspaceimage(:, :, s));
@@ -28,11 +30,7 @@ for s = 1 : Coilnum
     delta = r(:)' * r(:) / (a(:)' * a(:));
     while (count < inter_num && delta > RequiredAcc) 
         count = count + 1;
-        q = (conj(Image) .* Image - Q) .* p;
-        if afa ~= 0
-             Lq = Ls * reshape(p, D1 * D2, 1);
-             q = q + afa * reshape(Lq, D1, D2);
-        end          
+        q = (conj(Image) .* Image  - Q) .* p;        
         b = b + (r(:)' * r(:)) / (p(:)' * q(:)) * p;
         tempr = r(:);
         r = r - (r(:)' * r(:)) / (p(:)' * q(:)) * q;
