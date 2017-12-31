@@ -146,8 +146,6 @@ imshow(abs(rot90(WeightingFunctions(:, :, 1) .* mask , -1) ), []);
 title('通过中心全采样区域生成的 WeightingFunctions for Channel 1 with Mask');
 %% low resolution reconstruction with CG
 kspace_temp = zeros(D2, D2, CoilNum);
-%kspace_temp(81 : ReduceFactor : 176, :, :) = KspaceDataWeighted_full(81 : ReduceFactor : 176, :, :);
-%kspace_temp(:, :, :) = KspaceDataWeighted_full(:, :, :);
 kspace_temp(acs_line_location, :, :) = KspaceDataWeighted_full(acs_line_location, :, :);
 kaiser_window_2D = cosine_taper_window(128, 2, 10, 2, 2, 2);
 for i = 1:CoilNum
@@ -155,7 +153,6 @@ for i = 1:CoilNum
 end
 ImgRecon_CG_low_Resolution = SENSEArbitrary_regul_GN(kspace_temp, WeightingFunctions, InitImg, ...
     trajectory, Density, Ls, afa, inter_num);
-%ImgRecon_CG_NMSE = (ImgRecon_CG * sum(sum(abs(mask))) / sum(sum(abs(ImgRecon_CG .* mask))));
 ImgRecon_CG_low_Resolution_NMSE = ImgRecon_CG_low_Resolution / mean(mean(abs(ImgRecon_CG_low_Resolution)));
 
 for s = 1 : CoilNum
@@ -170,42 +167,41 @@ figure,
 imshow(abs(rot90(ImgRecon_CG_low_Resolution, -1)), [0, 0.7 * max(max(abs(ImgRecon_CG_low_Resolution)))]);
 title('CG (low_resolution)');
 %% Conjugate Gradient for Encoding Matrix
-Q = 0.001;
-while(Q < 100)
-    Q = Q * 10;
-    sensitivity_underCG = CGforEncodingMatrix(kspace_temp, ImgRecon_CG_low_Resolution, WeightingFunctions, ...
-        Density, inter_num, mask ,Q);
+Q = 2;        % 惩罚系数
+pvalue = 0.1; % sensitivity 阈值，防止过拟合
+sensitivity_underCG = CGforEncodingMatrix(kspace_temp, ImgRecon_CG_low_Resolution, mask ,Q, pvalue);
 
-    figure,
-    subplot(2,2,4);
-    imshow(abs(rot90(sensitivity_underCG(:, :, 1), -1)), []);
-    title(['惩罚系数=', num2str(Q)]);
-    %% Conjugate Gradient
-    % for i = 1:CoilNum
-    %     sensitivity_underCG(:,:,i) = sensitivity_underCG(:,:,i) .* mask;
-    % end
-    KspaceDataWeighted(acs_line_location, :, :) = KspaceDataWeighted_full(acs_line_location, :, :);
-    ImgRecon_CG = SENSEArbitrary_regul_GN(KspaceDataWeighted, sensitivity_underCG, InitImg, ...
-        trajectory, Density, Ls, afa, inter_num);
-%     ImgRecon_CG = ImgRecon_CG .* mask;
-    subplot(2,2,3);
-    imshow(abs(rot90(WeightingFunctions(:, :, 1), -1)), []);
-    title('迭代前 Sensitivity');
+figure,
+subplot(2,2,3);
+imshow(abs(rot90(WeightingFunctions(:, :, 1), -1)), []);
+title('迭代前 Sensitivity');
+subplot(2,2,4);
+imshow(abs(rot90(sensitivity_underCG(:, :, 1), -1)), []);
+title(['惩罚系数=', num2str(Q)]);
+%% Conjugate Gradient
+%     for i = 1:CoilNum
+%         sensitivity_underCG(:,:,i) = sensitivity_underCG(:,:,i) .* mask;
+%     end
+KspaceDataWeighted(acs_line_location, :, :) = KspaceDataWeighted_full(acs_line_location, :, :);
+ImgRecon_CG = SENSEArbitrary_regul_GN(KspaceDataWeighted, sensitivity_underCG, InitImg, ...
+trajectory, Density, Ls, afa, inter_num);
 
-    ImgRecon_CG_NMSE = ImgRecon_CG / mean(mean(abs(ImgRecon_CG)));
+ImgRecon_CG_NMSE = ImgRecon_CG / mean(mean(abs(ImgRecon_CG)));
 
-    for s = 1 : CoilNum
-        Img_WF(:, :, s) = ImgRecon_CG(:, :) .* sensitivity_underCG(:, :, s);
-        k_space_full_CG(:, :, s) = fftshift(fft2(Img_WF(:, :, s)));
-    end
-    SY_CG = ReducedSample(k_space_full_CG, ReduceFactor, D2, ACSL, DL, DH, DM);
-    error_CG_with_updated_sensitivity = sum(abs(abs(SY_CG0) - abs(SY_CG)) .^2) / sum(abs(SY_CG0) .^2) * 100
-    CG_NMSE_with_updated_sensitivity = sum(sum(abs(abs(ImgRecon_CG_NMSE) - abs(Img_NMSE)) .^2)) / sum(sum(abs(Img_NMSE) .^ 2)) * 100
-
-    subplot(2,1,1);
-    imshow(abs(rot90(ImgRecon_CG, -1)));
-    title('CG with updated sensitivity');
+for s = 1 : CoilNum
+    Img_WF(:, :, s) = ImgRecon_CG(:, :) .* sensitivity_underCG(:, :, s);
+    k_space_full_CG(:, :, s) = fftshift(fft2(Img_WF(:, :, s)));
 end
+SY_CG = ReducedSample(k_space_full_CG, ReduceFactor, D2, ACSL, DL, DH, DM);
+error_CG_with_updated_sensitivity = sum(abs(abs(SY_CG0) - abs(SY_CG)) .^2) / sum(abs(SY_CG0) .^2) * 100
+CG_NMSE_with_updated_sensitivity = sum(sum(abs(abs(ImgRecon_CG_NMSE) - abs(Img_NMSE)) .^2)) / sum(sum(abs(Img_NMSE) .^ 2)) * 100
+
+subplot(2,2,1);
+imshow(abs(rot90(ImgRecon_CG, -1)), [0 , 0.7 * max(max(abs(ImgRecon_CG)))]);
+title('CG with updated sensitivity');
+subplot(2,2,2);
+imshow(abs(rot90(ImgRecon_CG, -1)));
+title('CG with updated sensitivity');
 %% Generate weighting functions and the weighted images. Downsampling by a factor ReduceFactor
 % 
 k_space_red = zeros(floor(D2 / ReduceFactor), D2, CoilNum);

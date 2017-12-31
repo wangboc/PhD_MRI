@@ -7,5 +7,5 @@ function ImgRecon=SEH_GN(trajectory,KspaceData,Density)
 % Figure 1
 %%
 %ImgRecon=ifftshift(ifft2(ifftshift(KspaceData.*Density)));
-ImgRecon = ifft2(fftshift(KspaceData .* Density));
+ImgRecon = ifft2(ifftshift(KspaceData .* Density));
 %ImgRecon=ifft2(fftshift(KspaceData.*Density));
