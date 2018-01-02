@@ -19,7 +19,7 @@ WeightingFunctions = zeros(m, n, Coilnum);
 % 3 整理后 (F(H)F - QH)E + F(H)d + Q * pvalue = 0
 for s = 1 : Coilnum
     xspaceimage(:, :, s) = ifft2(ifftshift(kspace_data(:, :, s)));
-    xspaceimageWeighted(:, :, s) =  (Image)' .* (xspaceimage(:, :, s));
+    xspaceimageWeighted(:, :, s) =  conj(Image) .* (xspaceimage(:, :, s));
     b = zeros(m,n);
     a = xspaceimageWeighted(:,:,s) + pvalue .* Q .* mask;
     RequiredAcc = 1e-10;
@@ -30,18 +30,18 @@ for s = 1 : Coilnum
 %     while (count < inter_num && delta > RequiredAcc) 
     while (delta > RequiredAcc) 
         count = count + 1;
-        q = ((Image)' .* Image - Q.* mask) .* p;
+        q = (conj(Image) .* Image - Q.* mask) .* p;
         b = b + (r(:)' * r(:)) / (p(:)' * q(:)) * p;
         tempr = r(:);
         r = r - (r(:)' * r(:)) / (p(:)' * q(:)) * q;
         p = r + (r(:)' * r(:)) / (tempr' * tempr) * p;
         delta = r(:)' * r(:) / (a(:)' * a(:));
     end
-%% 根据阈值，对外部过小值修正
-    temp = b;
-    b = b .* mask + ~mask;
-    b(abs(b)<pvalue) = pvalue;
-    b = b .* mask + temp .* ~mask;
+% %% 根据阈值，对外部过小值修正
+%     temp = b;
+%     b = b .* mask + ~mask;
+%     b(abs(b)<pvalue) = pvalue;
+%     b = b .* mask + temp .* ~mask;
 %% 结果输出
     WeightingFunctions(:,:,s) = b;   
 end
