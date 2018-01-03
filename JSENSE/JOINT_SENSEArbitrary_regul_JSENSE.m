@@ -31,7 +31,7 @@ ImgRecon = ifft2(ifftshift(kspace));
 
 for s = 1 : CoilNum
     Img_WF(:, :, s) = ImgRecon(:, :) .* WeightingFunctions(:, :, s);
-    kspace_full(:, :, s) = fftshift(fft2(Img_WF(:, :, s))) .* tukey_window;%.*Density_WT;
+    kspace_full(:, :, s) = fftshift(fft2(Img_WF(:, :, s))) ;%.*Density_WT;
 end
 SY_VP = ReducedSample(kspace_full, ReducedFactor, D2, AL, DL, DH, DM);
 error_JSENSE = sum(abs(abs(SY) - abs(SY_VP)) .^ 2) / sum(abs(SY) .^ 2) * 100
