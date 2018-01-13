@@ -1,18 +1,24 @@
 %% timer on 程序开始
 tic;
 %% Initialize parameters and load recon_images
-clear all; close all; fclose('all');
+clc; clear all; close all; fclose('all');
 
-path(path,'.\SENSE'); %Jinhua
-path(path,'.\Sensitivity'); %Jinhua
-path(path,'.\JSENSE'); %Jinhua
+path(path,'SENSE'); %Jinhua
+path(path,'Sensitivity'); %Jinhua
+path(path,'JSENSE'); %Jinhua
 
-ReduceFactor = 8;  % Facter: R = 1 - 8
+global ACSL;
+ReduceFactor = 6;  % Facter: R = 1 - 8
+ACSL = 64;       %32;  %  for reconstruction
+fprintf(['R = ', num2str(ReduceFactor), '       ACLs = ', num2str(ACSL), '\n****************************\n']);
+inter_num = 100 ; %2;
+
+global R;
 R = ReduceFactor;
 
 inter_num_VP = 6;%6;
-inter_num = 10 ; %2;
-ACSL = 32;       %32;  %  for reconstruction
+
+
 order = 10;
 FOV = 256;%252;%60;
 row = FOV;
@@ -26,6 +32,7 @@ clear Img;
 figure;
 imshow(abs(recon_images(:, :, 1)), []);
 
+global D2;
 [D1,D2,CoilNum] = size(recon_images);
 Img = zeros(D1, D2, CoilNum);
 for s = 1 : CoilNum
@@ -36,6 +43,7 @@ clear recon_images kspace_data
 s_poly = zeros(order + 1, order + 1, CoilNum);
 Img_SoS = sqrt(sum(abs(Img) .^ 2, 3));
 
+global mask;
 [mask] = get_mask(Img_SoS);
 Img_NMSE = Img_SoS / mean(mean(abs(Img_SoS)));
 
@@ -43,6 +51,13 @@ figure;
 imshow(abs(rot90(Img_SoS, -1)), [0, 0.7 * max(max(abs(Img_SoS)))]);
 title('SoS');
 WeightingFunctions_standard = zeros(D2, D2, CoilNum);
+[tukey_window, tukey_window_red] = filter_2D(D2, D2, ReduceFactor);
+% kspace_temp = zeros(D2, D2, CoilNum);
+
+% for s = 1 : CoilNum
+%     kspace_temp(:,:,s) = fftshift(fft2(Img(:, :, s)));
+% end
+% WeightingFunctions_standard = CGforEncodingMatrix(kspace_temp, Img_SoS, 0, 0 ,0, 0);
 for s = 1 : CoilNum
     WeightingFunctions_standard(:, :, s) = (Img(:, :, s) ./ (Img_SoS + eps));
 end
@@ -57,6 +72,7 @@ end
 %% 计算DL、DH、DM，其中，DL对应全采样下限，DH对应全采样上限，DM对应全采样区域中R所对应的欠采样线总数
 Img_reduced = Img(1 : ReduceFactor : D2, :, :);
 [D1, D2, CoilNum] = size(Img_reduced);
+global DL DH DM;
 DL = floor(D2 / 2 + 0.5) + 1 - floor(ACSL / 2 + 0.5);
 DH = floor(D2 / 2 + 0.5) + ACSL - floor(ACSL / 2 + 0.5);
 if (DL - 1) / R == floor((DL - 1) / R)
@@ -109,7 +125,6 @@ acs_line_location = DL : DH;
 KspaceDataWeighted_full = kspace_full;
 KspaceDataWeighted = zeros(D2, D2, CoilNum);
 KspaceDataWeighted(1 : ReduceFactor : D2, :, :) = KspaceDataWeighted_full(1 : ReduceFactor : D2, :, :);
-[tukey_window, tukey_window_red] = filter_2D(D2, D2, ReduceFactor);
 kspace_full_GN = zeros(size(kspace_full));
 for s = 1 : CoilNum
     kspace_full_GN(:, :, s) = kspace_full(:, :, s) .* tukey_window;
@@ -119,7 +134,8 @@ SY = ReducedSample(kspace_full_GN, ReduceFactor, D2, ACSL, DL, DH, DM);
 %SY_2D = ReducedSample_2D(kspace_full, ReduceFactor, D2, ACSL, DL, DH, DM);
 %% SENSE
 InitImg = zeros(D2, D2); 
-ImgRecon_SENSE = senserecon_GN(KspaceDataWeighted, WeightingFunctions, R);
+ImgRecon_SENSE = zeros(D2, D2); 
+% ImgRecon_SENSE = senserecon_GN(KspaceDataWeighted, WeightingFunctions, R);
 figure,
 imshow(abs(rot90(ImgRecon_SENSE, -1)), [0 , 0.7 * max(max(abs(ImgRecon_SENSE)))]);
 title('SENSE');
@@ -140,53 +156,23 @@ kspace_temp = zeros(D2, D2, CoilNum);
 kspace_temp(acs_line_location, :, :) = KspaceDataWeighted_full(acs_line_location, :, :);
 window = cosine_taper_window(128, 2, 10, 2, 2, 2);
 for i = 1:CoilNum
-    kspace_temp(:,:,i) = kspace_temp(:,:,i) .* window;
+    kspace_temp(:,:,i) = kspace_temp(:,:,i).* window;
 end
+
 ImgRecon_CG_low_Resolution = SENSEArbitrary_regul_GN(kspace_temp, WeightingFunctions, InitImg, ...
     trajectory, Density, Ls, afa, inter_num);
 ImgRecon_CG_low_Resolution_NMSE = ImgRecon_CG_low_Resolution / mean(mean(abs(ImgRecon_CG_low_Resolution)));
 figure,
 imshow(abs(rot90(ImgRecon_CG_low_Resolution, -1)), [0, 0.7 * max(max(abs(ImgRecon_CG_low_Resolution)))]);
 title('CG (low_resolution)');
-fprintf(CompareResult('CG_Low_Resolution', ImgRecon_CG_low_Resolution, WeightingFunctions, Img_SoS, kspace_data, ReduceFactor, D2, ACSL, DL, DH, DM));
 %% update mask using ImgRecon_CG_low_Resolution
 [mask] = get_mask(ImgRecon_CG_low_Resolution);
-% [C, h] = contour(abs(ImgRecon_CG_low_Resolution));
-% boundaryInfo = contourdata(C);
-% B = [boundaryInfo(1).xdata,boundaryInfo(1).ydata];
-% B = sortrows(B);
-% B = round(B);
-% index = 1;
-% C = zeros(1, 2); % x坐标，y最小值，y最大值；
-% for i = 1:size(B,1)
-%     if(i == 1)
-%         C(index,1) = B(i,1);
-%         C(index,2) = B(i,2);
-%         C(index,3) = B(i,2);
-%     elseif(B(i,1) ~= C(index,1))
-%         index = index + 1;
-%         C(index,1) = B(i,1);
-%         C(index,2) = B(i,2);
-%         C(index,3) = B(i,2);
-%     elseif (B(i,1) == C(index,1))
-%         if(B(i,2) < C(index,2))
-%             C(index,2) = B(i,2);
-%         end
-%         if (B(i,2) > C(index,3))
-%             C(index,3) = B(i,2);
-%         end
-%     end
-% end 
-% mask_update = zeros(D2);
-% for i = 1:length(C(:,1))
-%     for j = C(i,2):C(i,3)
-%         mask_update(j,C(i,1)) = 1;
-%     end
-% end
-%% Conjugate Gradient for Encoding Matrix
+% SE=strel('square',3);
+% mask=imdilate(mask,SE);
+%% Conjugate Gradient for updating sensitivity
 Q = 1;        % 惩罚系数
 pvalue = 0.1; % sensitivity 阈值，防止过拟合
-sensitivity_underCG = CGforEncodingMatrix(kspace_temp, ImgRecon_CG_low_Resolution, mask ,Q, pvalue);
+sensitivity_underCG = CGforEncodingMatrix(kspace_temp, ImgRecon_CG_low_Resolution, 1, mask ,Q, pvalue);
 figure,
 subplot(2,3,5);
 imshow(abs(rot90(WeightingFunctions(:, :, 1), -1)),[]);
@@ -194,37 +180,35 @@ title('迭代前 Sensitivity');
 subplot(2,3,6);
 imshow(abs(rot90(sensitivity_underCG(:, :, 1), -1)),[]);
 title(['惩罚系数=', num2str(Q), ' 阈值=', num2str(pvalue)]);
-%% Conjugate Gradient
+%% Conjugate Gradient with updated sensitivity
 %     for i = 1:CoilNum
 %         sensitivity_underCG(:,:,i) = sensitivity_underCG(:,:,i) .* mask;
 %     end
 KspaceDataWeighted(acs_line_location, :, :) = KspaceDataWeighted_full(acs_line_location, :, :);
-ImgRecon_CG = SENSEArbitrary_regul_GN(KspaceDataWeighted, sensitivity_underCG, InitImg, ...
+ImgRecon_with_updated_sensitivity = SENSEArbitrary_regul_GN(KspaceDataWeighted, sensitivity_underCG, InitImg, ...
 trajectory, Density, Ls, afa, inter_num);
-
-subplot(2,3,2);
-imshow(abs(rot90(ImgRecon_SENSE, -1)), []);
-title('SENSE');
+% ImgRecon_with_updated_sensitivity = senserecon_GN(KspaceDataWeighted, sensitivity_underCG, R);
 subplot(2,3,3);
-imshow(abs(rot90(ImgRecon_CG, -1)), []);
+imshow(abs(rot90(ImgRecon_with_updated_sensitivity.*mask, -1)), []);
 title('CG with updated sensitivity');
 subplot(2,3,1);
-imshow(abs(rot90(Img_SoS, -1)), []);
+imshow(abs(rot90(Img_SoS.*mask, -1)), []);
 title('SoS');
 subplot(2,3,4);
 imshow(abs(rot90(WeightingFunctions_standard(:,:,1), -1)), []);
 title('standard sensitivity');
-fprintf(CompareResult('CG with updated sensitivity', ImgRecon_CG, sensitivity_underCG, Img_SoS, kspace_data, ReduceFactor, D2, ACSL, DL, DH, DM));
-%% CG 
-KspaceDataWeighted(acs_line_location, :, :) = KspaceDataWeighted_full(acs_line_location, :, :);
+fprintf(CompareResult('CG with updated sensitivity', ImgRecon_with_updated_sensitivity, sensitivity_underCG, Img_SoS, kspace_data));
+%% Standard CG SENSE
+
 ImgRecon_CG = SENSEArbitrary_regul_GN(KspaceDataWeighted, WeightingFunctions, InitImg, ...
 trajectory, Density, Ls, afa, inter_num);
 subplot(2,3,2);
-imshow(abs(rot90(ImgRecon_SENSE, -1)), [0 , 0.7 * max(max(abs(ImgRecon_SENSE)))]);
+imshow(abs(rot90(ImgRecon_CG.*mask, -1)), []);
 title('CG SENSE');
-fprintf(CompareResult('CG SENSE', ImgRecon_CG, WeightingFunctions, Img_SoS, kspace_data, ReduceFactor, D2, ACSL, DL, DH, DM));
+fprintf(CompareResult('CG SENSE', ImgRecon_CG, WeightingFunctions, Img_SoS, kspace_data));
 %% Generate weighting functions and the weighted images. Downsampling by a factor ReduceFactor
 % 
+return;
 k_space_red = zeros(floor(D2 / ReduceFactor), D2, CoilNum);
 k_space_red(:, :, :) = kspace_full(1 : ReduceFactor : D2, :, :);
 %% WeightingFunctions based on the coefficients of a polynomial

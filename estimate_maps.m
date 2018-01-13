@@ -48,8 +48,8 @@ option = 2;
 
 %tukey_window = cosine_taper_window(k,kc,w,epsilon,k1,option);
 tukey_window = cosine_taper_window(128, 2, 10, 2, 2, 2);
-WW = tukey_window(k - center_lines : k + center_lines, k - center_lines : k + center_lines);
-ww1 = tukey_window(k : 256, k);
+% WW = tukey_window(k - center_lines : k + center_lines, k - center_lines : k + center_lines);
+% ww1 = tukey_window(k : 256, k);
 
 
 %window_col=hamming(center_lines);
@@ -69,7 +69,7 @@ ww1 = tukey_window(k : 256, k);
     %   figure; imshow(abs(k_coil(128-64:128+64,128-64:128+64,i)),[0,10]);
     %   dd
      %  coil_full(:,:,i)=ifftshift(ifft2(ifftshift(k_coil_full(:,:,i))));
-       coil_full(:, :, i) = ifft2(ifftshift(k_coil_full(:, :, i)));
+       coil_full(:, :, i) = ifft2(fftshift(k_coil_full(:, :, i)));
     
        %Receiver.sos_data(:,:,i)=center_data(:,:,i);
      end      

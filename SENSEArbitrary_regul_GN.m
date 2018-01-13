@@ -33,7 +33,7 @@ a = I .* sum(xspaceimageWeighted, 3);
 % Pruessmann K P, Weiger M, B?rnert P, et al. 
 % Advances in sensitivity encoding with arbitrary k©\space trajectories[J]. 
 % Magnetic resonance in medicine, 2001, 46(4): 638-651.
-RequiredAcc = 1e-10;
+RequiredAcc = 1e-9;
 b = InitImg;
 p = a;
 r = a;
@@ -41,7 +41,7 @@ count = 0;
 delta = r(:)' * r(:) / (a(:)' * a(:));
 
 while (count < inter_num && delta > RequiredAcc)
-    
+% while (delta > RequiredAcc) 
     count = count + 1;
         q = SMatrixAfunction3_GN(p, sen_map, trajectory, I, Density); 
         if afa ~= 0
