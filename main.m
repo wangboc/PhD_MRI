@@ -215,7 +215,7 @@ k_space_red(:, :, :) = kspace_full(1 : ReduceFactor : D2, :, :);
 % here xx is the averaged value of x, while it is calculated by
 % average(x)/max(x), so does yy.
 xx = sum(1 : D2) / D2 ^2; 
-yy =  sum(1 : D2) /D2 ^2;
+yy = sum(1 : D2) /D2 ^2;
 D1 = D2 / R;
 for s = 1 : CoilNum
     dv = (s - 1) * (D1 + ACSL - DM) * D2;
